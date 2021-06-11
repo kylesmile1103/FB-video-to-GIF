@@ -182,7 +182,6 @@ function Install-ChocoPkg ($pkg, $opt) {
 }
 
 function Get-FilePath($typeDialogs) {
-    \
     $OpenFileDialog = New-Object 'System.Windows.Forms.SaveFileDialog'
     if ($typeDialogs -eq "video") {
         $OpenFileDialog.DefaultExt = "mp4"

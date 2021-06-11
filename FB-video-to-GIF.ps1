@@ -54,13 +54,13 @@ $wshell = New-Object -ComObject Wscript.Shell
         </Grid>
         <Grid Grid.Row="1">
             <GroupBox Header="Input" FlowDirection="RightToLeft" Margin="8,8,4,4" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-                <Grid FlowDirection="LeftToRight" Margin="5" VerticalAlignment="Center">
+                <Grid FlowDirection="LeftToRight" Margin="5">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
                     <Label Grid.Column="0" Content="Facebook Post URL:" />
-                    <TextBox x:Name="postURL" Grid.Column="1" Margin="5,0,0,0" HorizontalAlignment="Stretch" />
+                    <TextBox x:Name="postURL" Grid.Column="1" Margin="5,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Stretch" TextWrapping="Wrap"/>
                 </Grid>
             </GroupBox>
         </Grid>
@@ -100,7 +100,6 @@ function Close-SplashScreen () {
 }
 
 $sendToRunspace = {
-    param($bitmap)
     [xml]$xaml2 = @"
 <Window
 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -127,7 +126,7 @@ Width="600" Height="300" ResizeMode = "NoResize" Topmost="True" >
        </StackPanel>	
    </Grid>
    <TextBlock Grid.Row="2"
-  Name="MyWipedText"
+  Name="loadingDots"
   Margin="20" 
   Width="600" Height="Auto" FontSize="25" FontWeight="Bold" Foreground="White">
   ................................................................
@@ -136,7 +135,7 @@ Width="600" Height="300" ResizeMode = "NoResize" Topmost="True" >
       <BeginStoryboard>
         <Storyboard>
           <DoubleAnimation
-            Storyboard.TargetName="MyWipedText" 
+            Storyboard.TargetName="loadingDots" 
             Storyboard.TargetProperty="(TextBlock.Width)"
             To="0.0" Duration="0:0:3" 
             AutoReverse="True" RepeatBehavior="Forever" />
@@ -183,19 +182,18 @@ function Install-ChocoPkg ($pkg, $opt) {
 }
 
 function Get-FilePath($typeDialogs) {
+    \
+    $OpenFileDialog = New-Object 'System.Windows.Forms.SaveFileDialog'
     if ($typeDialogs -eq "video") {
-        $OpenFileDialog = New-Object 'System.Windows.Forms.SaveFileDialog'
         $OpenFileDialog.DefaultExt = "mp4"
         $OpenFileDialog.Filter = "Video format (*.mp4) |*.mp4; *.wmv; *.3g2; *.3gp; *.3gp2; *.3gpp; *.amv; *.asf;  *.avi; *.bin; *.cue; *.divx; *.dv; *.flv; *.gxf; *.iso; *.m1v; *.m2v; *.m2t; *.m2ts; *.m4v; " +
         " *.mkv; *.mov; *.mp2; *.mp2v; *.mp4; *.mp4v; *.mpa; *.mpe; *.mpeg; *.mpeg1; *.mpeg2; *.mpeg4; *.mpg; *.mpv2; *.mts; *.nsv; *.nuv; *.ogg; *.ogm; *.ogv; *.ogx; *.ps; *.rec; *.rm; *.rmvb; *.tod; *.ts; *.tts; *.vob; *.vro; *.webm"
-        $OpenFileDialog.title = "Save file to..."
     }
     elseif ($typeDialogs -eq "gif") {
-        $OpenFileDialog = New-Object 'System.Windows.Forms.SaveFileDialog'
         $OpenFileDialog.DefaultExt = "gif"
         $OpenFileDialog.Filter = "GIF format (*.gif)|*.gif"
-        $OpenFileDialog.title = "Save file to..."
     }
+    $OpenFileDialog.title = "Save file to..."
     if ($OpenFileDialog.ShowDialog() -eq 'Ok') {
         Write-Output $OpenFileDialog.FileName
     }
@@ -214,6 +212,7 @@ function ffmpegProcess ([string]$inputs, [string]$opt, [string]$output) {
     }
     # $wshell.Popup("$ffmpegCMD", 0, "DEBUG")
 }
+
 $warnBadge = "M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z"
 $checkBadge = "M10,17L5,12L6.41,10.58L10,14.17L17.59,6.58L19,8M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
 if (!(. checkCommand "ffmpeg")) {
@@ -236,6 +235,7 @@ $insFFmpegBtn.Add_Click( {
             Install-ChocoPkg "ffmpeg"
             if (. checkCommand "ffmpeg") {
                 $this.Content = "Reinstall"
+                $ffmpeg.fill = "Green"
                 $ffmpeg.Data = $checkBadge
             }
         }
@@ -249,6 +249,7 @@ $insYoutubeDlBtn.Add_Click( {
             Install-ChocoPkg "youtube-dl"
             if (. checkCommand "youtube-dl") {
                 $this.Content = "Reinstall"
+                $youtubedl.fill = "Green"
                 $youtubedl.Data = $checkBadge
             }
         }
@@ -258,22 +259,22 @@ $insYoutubeDlBtn.Add_Click( {
     })
 
 $downloadBtn.Add_Click( {
-        $videoFile = '"{0}"' -f $(Get-FilePath "video")
+        [String]$videoFile = Get-FilePath "video"
         if (![string]::IsNullOrEmpty($videoFile)) {
             Start-SplashScreen
             $rawUrl = '"{0}"' -f $postURL.Text
             $vidUrl = '"{0}"' -f $(youtube-dl -g $rawUrl)
-            ffmpegProcess $vidUrl "" $videoFile
+            ffmpegProcess $vidUrl "" $('"{0}"' -f $videoFile)
         }
     })
 
 $downConvertBtn.Add_Click( {
-        $gifFile = '"{0}"' -f $(Get-FilePath "gif")
+        $gifFile = Get-FilePath "gif"
         if (![string]::IsNullOrEmpty($gifFile)) {
             Start-SplashScreen
             $rawUrl = '"{0}"' -f $postURL.Text
             $vidUrl = '"{0}"' -f $(youtube-dl -g $rawUrl)
-            ffmpegProcess $vidUrl "" $gifFile
+            ffmpegProcess $vidUrl "" ('"{0}"' -f $gifFile)
         }
     })
 

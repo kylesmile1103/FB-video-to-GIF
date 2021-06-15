@@ -159,6 +159,7 @@ Start-SplashScreen
 function checkCommand($cmd) {
     return !!$(Get-Command -errorAction SilentlyContinue $cmd);
 }
+
 function checkAdminPrivileges {
     $isAdmin = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
     return $isAdmin.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
@@ -166,7 +167,7 @@ function checkAdminPrivileges {
 
 function Install-ChocoPkg ($pkg, $opt) {
     Start-SplashScreen
-    if (. checkCommand "choco") {
+    if (!(. checkCommand "choco")) {
         [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072;
         Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
     }
@@ -227,6 +228,9 @@ if (!(. checkCommand "youtube-dl")) {
 }
 else {
     $insYoutubeDlBtn.Content = "Reinstall"
+}
+if (checkAdminPrivileges -ne $false) {
+    $Window.Title += " (Administrator)"
 }
 
 $insFFmpegBtn.Add_Click( {
